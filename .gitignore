@@ -1,0 +1,9 @@
+
+model/__pycache__/
+data/lcsts_test_set/
+data/processed/
+data/processed_thucnews/
+data/raw/
+data/thucnews_cache/
+app.log
+results
