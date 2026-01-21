@@ -1,93 +1,105 @@
-# title generation
+# 中文文章标题生成项目
 
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 项目结构
 
 ```
-cd existing_repo
-git remote add origin https://git.lug.ustc.edu.cn/zwx/title-generation.git
-git branch -M main
-git push -uf origin main
+├── data/
+│   ├── lcsts_test_set/     # LCSTS原始数据集
+│   ├── processed/          # 预处理后的数据
+|   ├── download_modelscope.py #下载LCSTS数据集
+|   ├── preprocess_thucnews.py #下载LCSTS数据集,并预处理
+│   └── preprocess.py       # 数据预处理脚本
+├── model/
+│   ├── config.py           # 模型配置
+│   ├── seq2seq.py          # Baseline: Seq2Seq+LSTM+Attention
+│   └── transformer.py      # 优化版: 完整Transformer
+├── train/
+│   ├── train_baseline.py   # Baseline训练脚本
+│   ├── train_transformer.py # Transformer训练脚本
+|   ├── train_mt5.py         # mt5训练脚本
+|   ├── evaluate_mt5.py     # mt5测试脚本
+│   └── evaluate.py         # 评估脚本   
+├── utils/
+│   ├── vocab.py            # 词表管理
+│   ├── metrics.py          # 评估指标(ROUGE, BLEU等)
+│   └── visualize.py        # 可视化工具
+├── checkpoints/            # 模型检查点
+├── results/                # 实验结果和图表
+├── requirements.txt        # 依赖
+└── README.md
 ```
 
-## Integrate with your tools
+## 环境搭建
 
-- [ ] [Set up project integrations](https://git.lug.ustc.edu.cn/zwx/title-generation/-/settings/integrations)
+```bash
 
-## Collaborate with your team
+conda create -n title_gen python=3.8
+conda activate title_gen
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+# 安装依赖
+pip install -r requirements.txt
 
-## Test and Deploy
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## 快速开始
 
-***
+### 1. 数据预处理
 
-# Editing this README
+**LCSTS 数据集（已下载）：**
+```bash
+cd d:\PythonProject\122119
+python data/preprocess.py
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+**THUCNews 数据集（从 HuggingFace 下载）：**
+```bash
+# 首先安装 datasets 库
+pip install datasets
 
-## Suggestions for a good README
+# 预处理 THUCNews（约83万条，首次需下载2GB数据）
+python data/preprocess_thucnews.py
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### 2. 训练模型
 
-## Name
-Choose a self-explaining name for your project.
+**使用 LCSTS 数据集（默认）：**
+```bash
+python train/train_baseline.py --epochs 30 --batch_size 64
+python train/train_transformer.py --epochs 30 --batch_size 64
+python train/train_mt5.py --epochs 30 --batch_size 16 --dataset lcsts
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**使用 THUCNews 数据集：**
+```bash
+python train/train_baseline.py --epochs 30 --batch_size 64 --dataset thucnews
+python train/train_transformer.py --epochs 30 --batch_size 64 --dataset thucnews
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+调试模式（使用小数据集）：
+```bash
+python train/train_baseline.py --debug --epochs 2
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### 3. 评估模型
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+# 使用 LCSTS 数据集评估
+python train/evaluate.py
+python train/evaluate_mt5.py
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+# 使用 THUCNews 数据集评估
+python train/evaluate.py --dataset thucnews
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+这会在测试集上评估两个模型，输出 ROUGE、BLEU 等指标，并生成对比图。
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## 实验结果
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+训练完成后，结果保存在 `results/` 目录：
+- `baseline_loss.png`: Baseline训练曲线
+- `transformer_loss.png`: Transformer训练曲线
+- `model_comparison.png`: 模型指标对比图
+- `metrics.json`: 详细指标数据
+- `*_samples.txt`: 生成样例
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
